@@ -275,7 +275,7 @@ private:
     virtual void transport_recv(BufferAllocated& buf)
     {
         try {
-            obfs_decrypt(buf);
+            obscure_decrypt(buf);
             
             OPENVPN_LOG_CLIPROTO("Transport RECV " << server_endpoint_render() << ' ' << Base::dump_packet(buf));
             
@@ -393,7 +393,7 @@ private:
                     {
                         // send packet via transport to destination
                         OPENVPN_LOG_CLIPROTO("Transport SEND " << server_endpoint_render() << ' ' << Base::dump_packet(buf));
-                        obfs_encrypt(buf);
+                        obscure_encrypt(buf);
                         if (transport->transport_send(buf))
                             Base::update_last_sent();
                         else if (halt)
@@ -545,7 +545,7 @@ private:
     {
         OPENVPN_LOG_CLIPROTO("Transport SEND " << server_endpoint_render() << ' ' << Base::dump_packet(net_buf));
         BufferAllocated newBuf(net_buf,0);
-        obfs_encrypt(newBuf);
+        obscure_encrypt(newBuf);
         if (transport->transport_send_const(newBuf))
             Base::update_last_sent();
     }

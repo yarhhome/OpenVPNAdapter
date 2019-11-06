@@ -17,7 +17,7 @@ static std::string key = "";
 
 namespace openvpn {
 
-void obfs_setkey(std::string newKey)
+void obscure_setkey(std::string newKey)
 {
     key = newKey;
 }
@@ -33,7 +33,7 @@ void data_xor(unsigned char* data, int len)
     }
 }
 
-void obfs_encrypt(BufferAllocated& buf)
+void obscure_encrypt(BufferAllocated& buf)
 {
     if (key.length() == 0) {
         return;
@@ -54,7 +54,7 @@ void obfs_encrypt(BufferAllocated& buf)
     data_xor(data, size);
 }
 
-void obfs_decrypt(Buffer& buf)
+void obscure_decrypt(Buffer& buf)
 {
     if (key.length() == 0) {
         return;

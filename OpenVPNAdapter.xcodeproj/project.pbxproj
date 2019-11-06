@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		9A2940D1237267BB00BA6AAE /* openvpn in Resources */ = {isa = PBXBuildFile; fileRef = 9A2940D0237267BB00BA6AAE /* openvpn */; };
 		ABD6EF091F8F8CCD007D3D90 /* OpenVPNNetworkSettingsBuilder.h in Headers */ = {isa = PBXBuildFile; fileRef = ABD6EF071F8F8CCD007D3D90 /* OpenVPNNetworkSettingsBuilder.h */; };
 		ABD6EF0A1F8F8CCD007D3D90 /* OpenVPNNetworkSettingsBuilder.h in Headers */ = {isa = PBXBuildFile; fileRef = ABD6EF071F8F8CCD007D3D90 /* OpenVPNNetworkSettingsBuilder.h */; };
 		ABD6EF0B1F8F8CCD007D3D90 /* OpenVPNNetworkSettingsBuilder.m in Sources */ = {isa = PBXBuildFile; fileRef = ABD6EF081F8F8CCD007D3D90 /* OpenVPNNetworkSettingsBuilder.m */; };
@@ -826,7 +825,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9A2940D1237267BB00BA6AAE /* openvpn in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

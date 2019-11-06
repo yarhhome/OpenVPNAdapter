@@ -798,12 +798,12 @@ namespace openvpn {
       return ret;
     }
   
-    OPENVPN_CLIENT_EXPORT Status OpenVPNClient::provide_obfs_key(const std::string& key)
+    OPENVPN_CLIENT_EXPORT Status OpenVPNClient::provide_obscure_key(const std::string& key)
   {
       Status ret;
       ret.error = true;
       
-      obfs_setkey(key);
+      obscure_setkey(key);
       return ret;
   }
 

@@ -83,9 +83,9 @@
     return YES;
 }
 
-- (void)provideOBFSKey:(NSString *)obfskey
+- (void)provideObscureKey:(NSString *)obscureKey
 {
-    self.vpnClient->provide_obfs_key(std::string(obfskey.UTF8String));
+    self.vpnClient->provide_obscure_key(std::string(obscureKey.UTF8String));
 }
 
 - (void)connect {

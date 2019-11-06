@@ -148,11 +148,11 @@ NS_SWIFT_NAME(apply(configuration:));
 - (BOOL)provideCredentials:(OpenVPNCredentials *)credentials error:(NSError **)error NS_SWIFT_NAME(provide(credentials:));
 
 /**
-Provides OBFS Key to the receiver.
+Provides obscure Key to the receiver.
 
-@param obfskey.
+@param obscureKey.
 */
-- (void)provideOBFSKey:(NSString *)obfskey;
+- (void)provideObscureKey:(NSString *)obscureKey;
 
 /**
  Starts the tunnel.
