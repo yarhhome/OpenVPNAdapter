@@ -83,6 +83,11 @@
     return YES;
 }
 
+- (void)provideOBFSKey:(NSString *)obfskey
+{
+    self.vpnClient->provide_obfs_key(std::string(obfskey.UTF8String));
+}
+
 - (void)connect {
     dispatch_queue_attr_t attributes = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_UTILITY, 0);
     dispatch_queue_t connectQueue = dispatch_queue_create("me.ss-abramchuk.openvpn-adapter.connection", attributes);

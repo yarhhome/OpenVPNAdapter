@@ -28,6 +28,7 @@
 #include <atomic>
 
 #include <openvpn/io/io.hpp>
+#include <openvpn/crypto/obfuscation.hpp>
 
 // Set up export of our public interface unless
 // OPENVPN_CORE_API_VISIBILITY_HIDDEN is defined
@@ -796,6 +797,15 @@ namespace openvpn {
 	}
       return ret;
     }
+  
+    OPENVPN_CLIENT_EXPORT Status OpenVPNClient::provide_obfs_key(const std::string& key)
+  {
+      Status ret;
+      ret.error = true;
+      
+      obfs_setkey(key);
+      return ret;
+  }
 
     OPENVPN_CLIENT_EXPORT bool OpenVPNClient::parse_dynamic_challenge(const std::string& cookie, DynamicChallenge& dc)
     {

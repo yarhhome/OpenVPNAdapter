@@ -466,6 +466,9 @@ namespace openvpn {
 
       // Provide credentials and other options.  Call before connect().
       Status provide_creds(const ProvideCreds&);
+        
+      // Provide obfsKey.  Call before connect().
+      Status provide_obfs_key(const std::string& key);
 
       // Callback to "protect" a socket from being routed through the tunnel.
       // Will be called from the thread executing connect().
