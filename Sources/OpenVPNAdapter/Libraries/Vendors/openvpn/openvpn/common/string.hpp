@@ -28,6 +28,7 @@
 #include <vector>
 #include <cstring>
 #include <cctype>
+#include <algorithm>
 
 #include <openvpn/common/platform.hpp>
 #include <openvpn/common/size.hpp>
@@ -66,6 +67,18 @@ namespace openvpn {
       strncpy (dest, src, maxlen);
       if (maxlen > 0)
 	dest[maxlen - 1] = 0;
+    }
+
+    // Copy string to dest, make sure dest is always null terminated,
+    // and fill out trailing chars in dest with '\0' up to dest_size.
+    inline void copy_fill (void *dest, const std::string& src, const size_t dest_size)
+    {
+      if (dest_size > 0)
+	{
+	  const size_t ncopy = std::min(dest_size - 1, src.length());
+	  std::memcpy(dest, src.c_str(), ncopy);
+	  std::memset(static_cast<unsigned char *>(dest) + ncopy, 0, dest_size - ncopy);
+	}
     }
 
     inline bool is_true(const std::string& str)
@@ -135,6 +148,21 @@ namespace openvpn {
 	}
       else
 	return false;
+    }
+
+    // Prepend leading characters (c) to str to obtain a minimum string length (min_len).
+    // Useful for adding leading zeros to numeric values or formatting tables.
+    inline std::string add_leading(const std::string& str, const size_t min_len, const char c)
+    {
+      if (min_len <= str.length())
+	return str;
+      size_t len = min_len - str.length();
+      std::string ret;
+      ret.reserve(min_len);
+      while (len--)
+	ret += c;
+      ret += str;
+      return ret;
     }
 
     // make sure that string ends with char c, if not append it
@@ -222,14 +250,21 @@ namespace openvpn {
       return str.find_first_of('\n') != std::string::npos;
     }
 
-    // return the first line (without newline) of a multi-line string
-    inline std::string first_line(const std::string& str)
+    // Return string up to a delimiter (without the delimiter).
+    // Returns the entire string if no delimiter is found.
+    inline std::string to_delim(const std::string& str, const char delim)
     {
-      const size_t pos = str.find_first_of('\n');
+      const size_t pos = str.find_first_of(delim);
       if (pos != std::string::npos)
 	return str.substr(0, pos);
       else
 	return str;
+    }
+
+    // return the first line (without newline) of a multi-line string
+    inline std::string first_line(const std::string& str)
+    {
+      return to_delim(str, '\n');
     }
 
     // Define a common interpretation of what constitutes a space character.
@@ -372,12 +407,16 @@ namespace openvpn {
     // indent a multiline string
     inline std::string indent(const std::string& str, const int first, const int remaining)
     {
-      std::string ret = spaces(first);
+      std::string ret;
+      int n_spaces = first;
       for (auto &c : str)
 	{
+	  if (n_spaces)
+	    ret += spaces(n_spaces);
+	  n_spaces = 0;
 	  ret += c;
 	  if (c == '\n')
-	    ret += spaces(remaining);
+	    n_spaces = remaining;
 	}
       return ret;
     }
@@ -434,7 +473,8 @@ namespace openvpn {
     }
 
     // Split a string on sep delimiter.  The size of the
-    // returned string list will be at most maxsplit + 1.
+    // returned string vector will be at least 1 and at
+    // most maxsplit + 1 (unless maxsplit is passed as -1).
     inline std::vector<std::string> split(const std::string& str,
 					  const char sep,
 					  const int maxsplit = -1)
@@ -443,13 +483,16 @@ namespace openvpn {
       int nterms = 0;
       std::string term;
 
-      for (auto &c : str)
+      if (maxsplit >= 0)
+	ret.reserve(maxsplit + 1);
+
+      for (const auto c : str)
 	{
 	  if (c == sep && (maxsplit < 0 || nterms < maxsplit))
 	    {
 	      ret.push_back(std::move(term));
 	      ++nterms;
-	      term = "";
+	      term.clear();
 	    }
 	  else
 	    term += c;

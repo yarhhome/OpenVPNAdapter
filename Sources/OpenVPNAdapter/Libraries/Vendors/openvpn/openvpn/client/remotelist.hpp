@@ -304,6 +304,7 @@ namespace openvpn {
 		notify_callback = notify_callback_arg;
 		remote_list->index.reset();
 		index = 0;
+		async_resolve_lock();
 		next();
 	      }
 	    else
@@ -350,6 +351,7 @@ namespace openvpn {
 	// resolve unless doing so would result in an empty list.
 	// Then call client's callback method.
 	{
+	  async_resolve_cancel();
 	  NotifyCallback* ncb = notify_callback;
 	  if (remote_list->cached_item_exists())
 	    remote_list->prune_uncached();
@@ -757,7 +759,7 @@ namespace openvpn {
 
     // return the current primary index (into list) and raise an exception
     // if it is undefined
-    const size_t primary_index() const
+    size_t primary_index() const
     {
       const size_t pri = index.primary();
       if (pri < list.size())
@@ -888,7 +890,7 @@ namespace openvpn {
 		  }
 		else
 		  e->server_port = default_port;
-		if (o.size() >= 4+adj)
+		if (o.size() >= (size_t)(4+adj))
 		  e->transport_protocol = Protocol::parse(o.get(3+adj, 16), Protocol::CLIENT_SUFFIX);
 		else
 		  e->transport_protocol = default_proto;

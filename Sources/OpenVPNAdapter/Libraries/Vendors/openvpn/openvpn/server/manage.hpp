@@ -71,7 +71,7 @@ namespace openvpn {
       virtual std::uint64_t instance_id() const = 0;
 
       // return a JSON string describing connected user
-      virtual std::string describe_user() = 0;
+      virtual std::string describe_user(const bool show_userprop) = 0;
 
       // disconnect
       virtual void disconnect_user(const HaltRestart::Type type,
@@ -126,6 +126,9 @@ namespace openvpn {
 
       // get client bandwidth stats
       virtual PeerStats stats_poll() = 0;
+
+      // return true if management layer should preserve session ID
+      virtual bool should_preserve_session_id() = 0;
 
       // get native reference to client instance
       virtual TunClientInstance::NativeHandle tun_native_handle() = 0;
