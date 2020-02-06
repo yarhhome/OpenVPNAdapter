@@ -275,7 +275,7 @@ namespace openvpn {
       virtual void transport_recv(BufferAllocated& buf)
       {
 	try {
-        obscure_decrypt(buf);
+      obscure_decrypt(buf);
 	  OPENVPN_LOG_CLIPROTO("Transport RECV " << server_endpoint_render() << ' ' << Base::dump_packet(buf));
 
 	  // update current time
