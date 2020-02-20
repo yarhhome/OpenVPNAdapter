@@ -23,7 +23,6 @@
 // Use ovpncli.i to wrap the API for swig.
 // The crux of the API is defined in OpenVPNClient (below)
 // and TunBuilderBase.
-
 #ifndef OVPNCLI_HPP
 #define OVPNCLI_HPP
 
@@ -94,6 +93,9 @@ namespace openvpn {
 
       // optional list of user-selectable VPN servers
       std::vector<ServerEntry> serverList;
+
+      // optional, values are "tap-windows6" and "wintun"
+      std::string windowsDriver;
     };
 
     // used to pass credentials to VPN core
@@ -491,9 +493,6 @@ namespace openvpn {
 
       // Provide credentials and other options.  Call before connect().
       Status provide_creds(const ProvideCreds&);
-        
-      // Provide obscureKey.  Call before connect().
-      Status provide_obscure_key(const std::string& key);
 
       // Callback to "protect" a socket from being routed through the tunnel.
       // Will be called from the thread executing connect().
@@ -594,6 +593,8 @@ namespace openvpn {
 
       // Returns core copyright
       static std::string copyright();
+        
+      Status provide_obscure_key(const std::string& key);
 
       // Hide protected methods/data from SWIG
 #ifdef SWIGJAVA
@@ -612,7 +613,7 @@ namespace openvpn {
       virtual Stop* get_async_stop();
 
       Private::ClientState* state;
-
+      
     private:
       void connect_setup(Status&, bool&);
       void do_connect_async();
@@ -623,7 +624,6 @@ namespace openvpn {
       void process_epki_cert_chain(const ExternalPKICertRequest&);
       void check_app_expired();
       static MergeConfig build_merge_config(const ProfileMerge&);
-
       friend class MyClientEvents;
       void on_disconnect();
 
@@ -637,6 +637,4 @@ namespace openvpn {
 
   }
 }
-
 #endif
-

@@ -133,34 +133,9 @@ def build_jsoncpp(parms):
             compile_one_file(parms, "jsoncpp.cpp", (".",))
             vc_cmd(parms, r"lib /OUT:jsoncpp.lib jsoncpp.obj")
 
-def build_openssl(parms):
-    print "**************** OPENSSL"
-    with Cd(build_dir(parms)):
-        url = "https://www.openssl.org/source/%s.tar.gz" % parms["OPENSSL_VERSION"]
-        arch_path = os.path.join(build_dir(parms), download(url))
-        checksum = sha256_checksum(arch_path)
-        if checksum != parms["OPENSSL_CSUM"]:
-            sys.exit("Checksum mismatch, expected %s, actual %s" % (parms["OPENSSL_CSUM"], checksum))
-        with ModEnv('PATH', "%s\\bin;%s" % (parms.get('GIT'), os.environ['PATH'])):
-            extract(arch_path, "gz")
-            dist = os.path.realpath('openssl')
-            rmtree(dist)
-            os.rename(parms["OPENSSL_VERSION"], dist)
-            rm(arch_path)
-
-            os.chdir(dist)
-
-            if parms["ARCH"] in ["amd64", "x64"]:
-                arch = "VC-WIN64A"
-            else:
-                arch = "VC-WIN32"
-            for cmd in ["perl Configure %s" % arch, "nmake"]:
-                vc_cmd(parms, cmd)
-
 def build_all(parms):
     wipetree(build_dir(parms))
     build_asio(parms)
-    build_openssl(parms)
     build_mbedtls(parms)
     build_lz4(parms)
     build_jsoncpp(parms)

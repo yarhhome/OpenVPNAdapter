@@ -22,6 +22,12 @@
 #ifndef OPENVPN_COMMON_TEMPFILE_H
 #define OPENVPN_COMMON_TEMPFILE_H
 
+#include <openvpn/common/platform.hpp>
+
+#if defined(OPENVPN_PLATFORM_WIN)
+#error temporary file methods not supported on Windows
+#endif
+
 #include <stdlib.h>
 #include <errno.h>
 #include <cstring>     // for memcpy
@@ -103,7 +109,7 @@ namespace openvpn {
 	  const int eno = errno;
 	  OPENVPN_THROW(tempfile_exception, "error writing to temporary file: " << filename() << " : " << strerror_str(eno));
 	}
-      else if (size != content.length())
+      else if (static_cast<std::string::size_type>(size) != content.length())
 	{
 	  OPENVPN_THROW(tempfile_exception, "incomplete write to temporary file: " << filename());
 	}

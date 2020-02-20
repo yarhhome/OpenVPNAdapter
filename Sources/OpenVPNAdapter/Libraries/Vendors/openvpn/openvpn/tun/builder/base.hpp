@@ -23,6 +23,9 @@
 #define OPENVPN_TUN_BUILDER_BASE_H
 
 #include <string>
+#if defined(ENABLE_DCO)
+#include <openvpn/kovpn/kovpn_devconf.hpp>
+#endif
 
 namespace openvpn {
   class TunBuilderBase
@@ -248,6 +251,26 @@ namespace openvpn {
     virtual void tun_builder_teardown(bool disconnect) {}
 
     virtual ~TunBuilderBase() {}
+#if defined(ENABLE_DCO)
+    /**
+     * Opens the kovpn device to use for the DCOTransport
+     * @param devconf   Parameters for opening device, will be overwritten with the return values
+     * @return          file descriptor of the opened device (/dev/net/ovpn)
+     */
+    virtual int tun_builder_open_kovpn(KoTun::DevConf& devconf)
+    {
+      return -1;
+    }
+    /**
+     * Callback configuring the dco device for use with the
+     * DCO client
+     * @param dcofd   	File descriptor of the DCO device used by the client
+     * @param peerid	Peer ID used by the client
+     */
+    virtual void tun_builder_establish_dco(int dcofd, int peerid)
+    {
+    }
+#endif
   };
 }
 

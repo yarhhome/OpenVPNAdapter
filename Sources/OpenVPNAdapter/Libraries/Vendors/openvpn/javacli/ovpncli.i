@@ -44,7 +44,6 @@
 namespace std {
   %template(ClientAPI_ServerEntryVector) vector<openvpn::ClientAPI::ServerEntry>;
   %template(ClientAPI_LLVector) vector<long long>;
-  %template(ClientAPI_StringVec) vector<string>;
 };
 
 // interface to be bridged between C++ and target language

@@ -105,6 +105,7 @@ bool OpenVPNClient::tun_builder_add_search_domain(const std::string& domain) {
 }
 
 bool OpenVPNClient::tun_builder_set_mtu(int mtu) {
+    NSLog(@"tun_builder_set_mtu:%d",mtu);
     return [this->delegate setMTU:@(mtu)];
 }
 

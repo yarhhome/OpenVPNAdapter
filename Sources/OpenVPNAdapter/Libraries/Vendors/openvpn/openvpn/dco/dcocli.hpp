@@ -34,7 +34,7 @@
 #include <openvpn/transport/client/transbase.hpp>
 #include <openvpn/tun/client/tunbase.hpp>
 #include <openvpn/tun/builder/capture.hpp>
-#include <openvpn/tun/linux/client/tuniproute.hpp>
+#include <openvpn/tun/linux/client/tunmethods.hpp>
 #include <openvpn/transport/dco.hpp>
 #include <openvpn/kovpn/kovpn.hpp>
 #include <openvpn/kovpn/kodev.hpp>
@@ -113,7 +113,7 @@ namespace openvpn {
       }
 
     private:
-      ClientConfig() {}
+      ClientConfig() = default;
     };
 
     class Client : public TransportClient,
@@ -128,10 +128,10 @@ namespace openvpn {
 
       struct ProtoBase
       {
-	ProtoBase() {}
+	ProtoBase() = default;
 	virtual IP::Addr server_endpoint_addr() const = 0;
 	virtual void close() = 0;
-	virtual ~ProtoBase() {}
+	virtual ~ProtoBase() = default;
 
 	ProtoBase(const ProtoBase&) = delete;
 	ProtoBase& operator=(const ProtoBase&) = delete;
@@ -139,7 +139,7 @@ namespace openvpn {
 
       struct UDP : public ProtoBase
       {
-	UDP(openvpn_io::io_context& io_context)
+	explicit UDP(openvpn_io::io_context& io_context)
 	  : resolver(io_context),
 	    socket(io_context)
 	{
@@ -161,7 +161,10 @@ namespace openvpn {
 	UDPTransport::AsioEndpoint server_endpoint;
       };
 
-#ifdef ENABLE_PG
+#if defined(ENABLE_PG)
+#if defined(USE_TUN_BUILDER)
+#error ENABLE_PG and USE_TUN_BUILDER cannot be used together
+#endif
       typedef KoTun::Tun<Client*> TunImpl;
 #else
       typedef KoTun::TunClient<Client*> TunImpl;
@@ -197,14 +200,29 @@ namespace openvpn {
 	devconf.dc.peer_lookup = OVPN_PEER_LOOKUP_NONE;
 	devconf.dc.cpu_id = -1;
 
-	// create kovpn tun socket (implementation in kodevtun.hpp)
-	impl.reset(new TunImpl(io_context,
-			       devconf,
-			       this,
-			       config->transport.frame,
-			       nullptr,
-			       nullptr));
-
+	/* We have a tun builder, we get the device from the
+	 * tun builder
+	 */
+	if (config->builder)
+	  {
+#ifdef ENABLE_PG
+            throw Exception("tun builder does not work with ENABLE_PG");
+#else
+            int fd = config->builder->tun_builder_open_kovpn(devconf);
+		impl.reset (new TunImpl(io_context, fd, devconf.dc.dev_name,
+					this, config->transport.frame));
+#endif
+	  }
+	else
+	  {
+	    // create kovpn tun socket (implementation in kodevtun.hpp)
+	    impl.reset (new TunImpl (io_context,
+				     devconf,
+				     this,
+				     config->transport.frame,
+				     nullptr,
+				     nullptr));
+	  }
 	// set kovpn stats hook
 	config->transport.stats->dco_configure(this);
 
@@ -307,8 +325,22 @@ namespace openvpn {
 	  tun_parent->tun_pre_tun_config();
 
 	  // parse pushed options
-	  TunBuilderCapture::Ptr po(new TunBuilderCapture());
-	  TunProp::configure_builder(po.get(),
+	  TunBuilderCapture::Ptr po;
+	  TunBuilderBase *builder;
+
+	  if (config->builder)
+	    {
+	      /* Also configure the tun builder to set the interface
+	       * config */
+	      builder = config->builder;
+	    }
+	  else
+	    {
+	      po.reset(new TunBuilderCapture());
+	      builder = po.get();
+	    }
+
+	  TunProp::configure_builder(builder,
 				     state.get(),
 				     config->transport.stats.get(),
 				     server_addr,
@@ -317,7 +349,8 @@ namespace openvpn {
 				     nullptr,
 				     false);
 
-	  OPENVPN_LOG("CAPTURED OPTIONS:" << std::endl << po->to_string());
+	  if (po)
+	    OPENVPN_LOG("CAPTURED OPTIONS:" << std::endl << po->to_string());
 
 #ifdef ENABLE_PG
 	  if (config->trunk_unit >= 0)
@@ -349,6 +382,11 @@ namespace openvpn {
 	    }
 	  else
 #endif   // ENABLE_PG
+	  if (config->builder)
+	    {
+	      config->builder->tun_builder_establish_dco(impl->native_handle(), peer_id);
+	    }
+	  else // po is defined when builder is nullptr
 	    {
 	      // add/remove command lists
 	      ActionList::Ptr add_cmds = new ActionList();
@@ -359,7 +397,7 @@ namespace openvpn {
 
 	      // non-trunk setup
 	      TUN_LINUX::tun_config(state->iface_name, *po, &rtvec, *add_cmds,
-				    *remove_cmds);
+				    *remove_cmds, false);
 
 	      // Add routes to DCO implementation
 	      impl->peer_add_routes(peer_id, rtvec);
@@ -508,7 +546,7 @@ namespace openvpn {
 
       // called after DNS resolution has succeeded or failed
       void resolve_callback(const openvpn_io::error_code& error,
-			    openvpn_io::ip::udp::resolver::results_type results)
+			    openvpn_io::ip::udp::resolver::results_type results) override
       {
 	if (!halt)
 	  {
@@ -583,7 +621,7 @@ namespace openvpn {
 	    {
 	    case OVPN_TH_TRANS_BY_PEER_ID:
 	      {
-		if (peer_id < 0 || th->peer_id != peer_id)
+		if (peer_id < 0 || th->peer_id != static_cast<uint32_t>(peer_id))
 		  {
 		    OPENVPN_LOG("dcocli: OVPN_TH_TRANS_BY_PEER_ID unrecognized peer_id=" << th->peer_id);
 		    return;
@@ -597,7 +635,7 @@ namespace openvpn {
 	      {
 		const struct ovpn_tun_head_status *thn = (const struct ovpn_tun_head_status *)th;
 
-		if (peer_id < 0 || thn->head.peer_id != peer_id)
+		if (peer_id < 0 || thn->head.peer_id != static_cast<uint32_t>(peer_id))
 		  {
 		    OPENVPN_LOG("dcocli: OVPN_TH_NOTIFY_STATUS unrecognized peer_id=" << thn->head.peer_id);
 		    return;
@@ -647,7 +685,9 @@ namespace openvpn {
 	    halt = true;
 	    config->transport.stats->dco_update(); // final update
 	    config->transport.stats->dco_configure(nullptr);
-	    if (remove_cmds)
+	    if (config->builder)
+	      config->builder->tun_builder_teardown(true);
+	    else if (remove_cmds)
 	      remove_cmds->execute_log();
 	    if (impl)
 	      impl->stop();

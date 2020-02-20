@@ -117,7 +117,6 @@ not required for Mac builds.
 
 Build the dependencies::
 
-    $ DL=~/Downloads
     $ OSX_ONLY=1 $O3/core/scripts/mac/build-all
 
 Now build the OpenVPN 3 client executable::
@@ -126,7 +125,7 @@ Now build the OpenVPN 3 client executable::
     $ . vars/vars-osx64
     $ . vars/setpath
     $ cd test/ovpncli
-    $ MTLS=1 LZ4=1 ASIO=1 build cli
+    $ MTLS=1 LZ4=1 build cli
 
 This will build the OpenVPN 3 client library with a small client
 wrapper (``cli``).  It will also statically link in all external
@@ -152,9 +151,8 @@ Building the OpenVPN 3 client on Windows
 
 Prerequisites:
 
-* Visual Studio 2017
-* Python 2.7
-* Perl (for building openssl)
+ - Visual Studio 2017
+ - Python 2.7
 
 Clone the OpenVPN 3 source repo::
 
@@ -162,19 +160,19 @@ Clone the OpenVPN 3 source repo::
   > c:\Temp>cd O3
   > c:\Temp\O3>git clone https://github.com/OpenVPN/openvpn3.git core
 
-Add environment variable ``O3`` with value ``c:\Temp\O3`` and reopen commmand prompt.
-
 Download and build dependencies::
 
   > c:\Temp\O3>cd core\win
-  > c:\Temp\O3\core\win>set STATIC=1&& set DEBUG=1&& python buildep.py
+  > c:\Temp\O3\core\win>set O3=C:\Temp\O3 && python buildep.py
 
-Now you can open project in Visual Studio. Project and solution files are
-located in ``O3\core\win`` directory.
+Build test client::
 
-You can also build the test client from command prompt::
+  > c:\Temp\O3\core\win>set O3=C:\Temp\O3 && python build.py
 
-  > c:\Temp\O3\core\win>set STATIC=1&& set DEBUG=1&& python build.py
+Visual Studio 2015 project and solution files are located in ``O3\core\win`` directory.
+Before opening project you need to build dependencies and define OVPN3_ROOT
+environmental variable (``C:\Temp\O3`` from example above).
+
 
 Testing
 -------

@@ -43,30 +43,10 @@
 #include <openvpn/kovpn/koroute.hpp>
 #include <openvpn/kovpn/kostats.hpp>
 #include <openvpn/linux/procfs.hpp>
+#include <openvpn/kovpn/kovpn_devconf.hpp>
 
 namespace openvpn {
   namespace KoTun {
-
-    OPENVPN_EXCEPTION(kotun_error);
-
-    struct DevConf
-    {
-      DevConf()
-      {
-	std::memset(&dc, 0, sizeof(dc));
-      }
-
-      void set_dev_name(const std::string& name)
-      {
-	if (name.length() < IFNAMSIZ)
-	  ::strcpy(dc.dev_name, name.c_str());
-	else
-	  OPENVPN_THROW(kotun_error, "ovpn dev name too long");
-      }
-
-      struct ovpn_dev_init dc;
-    };
-
     // kovpn API methods
     namespace API {
 
@@ -331,6 +311,18 @@ namespace openvpn {
 	ScopedFD fd(open_kovpn(devconf, kovpn_stats, first));
 	Base::name_ = devconf.dc.dev_name;
 	Base::stream = new openvpn_io::posix::stream_descriptor(io_context, fd.release());
+      }
+
+      // variant that is used when tun builder is in use
+      TunClient(openvpn_io::io_context& io_context,
+		const int kovpnfd,
+		std::string dev_name,
+		ReadHandler read_handler,
+		const Frame::Ptr& frame)
+	  : Base(read_handler, frame, SessionStats::Ptr())
+      {
+	Base::name_ = dev_name;
+	Base::stream = new openvpn_io::posix::stream_descriptor(io_context, kovpnfd);
       }
 
       // Attach UDP socket to ovpn instance

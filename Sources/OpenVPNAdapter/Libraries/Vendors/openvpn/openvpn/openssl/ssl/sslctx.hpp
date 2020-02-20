@@ -55,16 +55,19 @@
 #include <openvpn/ssl/nscert.hpp>
 #include <openvpn/ssl/tlsver.hpp>
 #include <openvpn/ssl/tls_remote.hpp>
+#include <openvpn/ssl/verify_x509_name.hpp>
 #include <openvpn/ssl/sslconsts.hpp>
 #include <openvpn/ssl/sslapi.hpp>
 #include <openvpn/ssl/ssllog.hpp>
 #include <openvpn/ssl/sni_handler.hpp>
 #include <openvpn/openssl/util/error.hpp>
+#include <openvpn/openssl/pki/extpki.hpp>
 #include <openvpn/openssl/pki/x509.hpp>
 #include <openvpn/openssl/pki/crl.hpp>
 #include <openvpn/openssl/pki/pkey.hpp>
 #include <openvpn/openssl/pki/dh.hpp>
 #include <openvpn/openssl/pki/x509store.hpp>
+#include <openvpn/openssl/pki/x509certinfo.hpp>
 #include <openvpn/openssl/bio/bio_memq_stream.hpp>
 #include <openvpn/openssl/ssl/sess_cache.hpp>
 
@@ -100,104 +103,104 @@ namespace openvpn {
     public:
       typedef RCPtr<Config> Ptr;
 
-      virtual SSLFactoryAPI::Ptr new_factory()
+      SSLFactoryAPI::Ptr new_factory() override
       {
 	return SSLFactoryAPI::Ptr(new OpenSSLContext(this));
       }
 
-      virtual void set_mode(const Mode& mode_arg)
+      void set_mode(const Mode& mode_arg) override
       {
 	mode = mode_arg;
       }
 
-      virtual const Mode& get_mode() const
+      const Mode& get_mode() const override
       {
 	return mode;
       }
 
       // if this callback is defined, no private key needs to be loaded
-      virtual void set_external_pki_callback(ExternalPKIBase* external_pki_arg)
+      void set_external_pki_callback(ExternalPKIBase* external_pki_arg) override
       {
 	external_pki = external_pki_arg;
       }
 
       // server side
-      virtual void set_session_ticket_handler(TLSSessionTicketBase* session_ticket_handler_arg)
+      void set_session_ticket_handler(TLSSessionTicketBase* session_ticket_handler_arg) override
       {
 	session_ticket_handler = session_ticket_handler_arg;
       }
 
       // client side
-      virtual void set_client_session_tickets(const bool v)
+      void set_client_session_tickets(const bool v) override
       {
 	client_session_tickets = v;
       }
 
       // server side
-      virtual void set_sni_handler(SNI::HandlerBase* sni_handler_arg)
+      void set_sni_handler(SNI::HandlerBase* sni_handler_arg) override
       {
 	sni_handler = sni_handler_arg;
       }
 
       // client side
-      virtual void set_sni_name(const std::string& sni_name_arg)
+      void set_sni_name(const std::string& sni_name_arg) override
       {
 	sni_name = sni_name_arg;
       }
 
-      virtual void set_private_key_password(const std::string& pwd)
+      void set_private_key_password(const std::string& pwd) override
       {
 	pkey.set_private_key_password(pwd);
       }
 
-      virtual void load_ca(const std::string& ca_txt, bool strict)
+      void load_ca(const std::string& ca_txt, bool strict) override
       {
 	ca.parse_pem(ca_txt, "ca");
       }
 
-      virtual void load_crl(const std::string& crl_txt)
+      void load_crl(const std::string& crl_txt) override
       {
 	ca.parse_pem(crl_txt, "crl");
       }
 
-      virtual void load_cert(const std::string& cert_txt)
+      void load_cert(const std::string& cert_txt) override
       {
 	cert.parse_pem(cert_txt, "cert");
       }
 
-      virtual void load_cert(const std::string& cert_txt, const std::string& extra_certs_txt)
+      void load_cert(const std::string& cert_txt, const std::string& extra_certs_txt) override
       {
 	load_cert(cert_txt);
 	if (!extra_certs_txt.empty())
 	  CertCRLList::from_string(extra_certs_txt, "extra-certs", &extra_certs, nullptr);
       }
 
-      virtual void load_private_key(const std::string& key_txt)
+      void load_private_key(const std::string& key_txt) override
       {
 	pkey.parse_pem(key_txt, "private key");
       }
 
-      virtual void load_dh(const std::string& dh_txt)
+      void load_dh(const std::string& dh_txt) override
       {
 	dh.parse_pem(dh_txt);
       }
 
-      virtual std::string extract_ca() const
+      std::string extract_ca() const override
       {
 	return ca.certs.render_pem();
       }
 
-      virtual std::string extract_crl() const
+      std::string extract_crl() const override
       {
 	return ca.crls.render_pem();
       }
 
-      virtual std::string extract_cert() const
+      std::string extract_cert() const override
       {
 	return cert.render_pem();
       }
 
-      virtual std::vector<std::string> extract_extra_certs() const
+      std::vector<std::string> extract_extra_certs() const override
       {
 	std::vector<std::string> ret;
 
@@ -207,131 +210,131 @@ namespace openvpn {
 	return ret;
       }
 
-      virtual std::string extract_private_key() const
+      std::string extract_private_key() const override
       {
 	return pkey.render_pem();
       }
 
-      virtual std::string extract_dh() const
+      std::string extract_dh() const override
       {
 	return dh.render_pem();
       }
 
-      virtual PKType::Type private_key_type() const
+      PKType::Type private_key_type() const override
       {
 	if (!pkey.defined())
 	  return PKType::PK_NONE;
 	return pkey.key_type();
       }
 
-      virtual size_t private_key_length() const
+      size_t private_key_length() const override
       {
 	return pkey.key_length();
       }
 
-      virtual void set_frame(const Frame::Ptr& frame_arg)
+      void set_frame(const Frame::Ptr& frame_arg) override
       {
 	frame = frame_arg;
       }
 
-      virtual void set_debug_level(const int debug_level)
+      void set_debug_level(const int debug_level) override
       {
 	ssl_debug_level = debug_level;
       }
 
-      virtual void set_flags(const unsigned int flags_arg)
+      void set_flags(const unsigned int flags_arg) override
       {
 	flags = flags_arg;
       }
 
-      virtual void set_ns_cert_type(const NSCert::Type ns_cert_type_arg)
+      void set_ns_cert_type(const NSCert::Type ns_cert_type_arg) override
       {
 	ns_cert_type = ns_cert_type_arg;
       }
 
-      virtual void set_remote_cert_tls(const KUParse::TLSWebType wt)
+      void set_remote_cert_tls(const KUParse::TLSWebType wt) override
       {
 	KUParse::remote_cert_tls(wt, ku, eku);
       }
 
-      virtual void set_tls_remote(const std::string& tls_remote_arg)
+      void set_tls_remote(const std::string& tls_remote_arg) override
       {
 	tls_remote = tls_remote_arg;
       }
 
-      virtual void set_tls_version_min(const TLSVersion::Type tvm)
+      void set_tls_version_min(const TLSVersion::Type tvm) override
       {
 	tls_version_min = tvm;
       }
 
-      virtual void set_tls_version_min_override(const std::string& override)
+      void set_tls_version_min_override(const std::string& override) override
       {
 	TLSVersion::apply_override(tls_version_min, override);
       }
 
-      virtual void set_tls_cert_profile(const TLSCertProfile::Type type)
+      void set_tls_cert_profile(const TLSCertProfile::Type type) override
       {
 	tls_cert_profile = type;
       }
 
-      virtual void set_tls_cert_profile_override(const std::string& override)
+      void set_tls_cert_profile_override(const std::string& override) override
       {
 	TLSCertProfile::apply_override(tls_cert_profile, override);
       }
 
-      virtual void set_local_cert_enabled(const bool v)
+      void set_local_cert_enabled(const bool v) override
       {
 	local_cert_enabled = v;
       }
 
-      virtual void set_force_aes_cbc_ciphersuites(const bool v)
+      void set_force_aes_cbc_ciphersuites(const bool v) override
       {
 	force_aes_cbc_ciphersuites = v;
       }
 
-      virtual void set_x509_track(X509Track::ConfigSet x509_track_config_arg)
+      void set_x509_track(X509Track::ConfigSet x509_track_config_arg) override
       {
 	x509_track_config = std::move(x509_track_config_arg);
       }
 
-      virtual void set_rng(const RandomAPI::Ptr& rng_arg)
+      void set_rng(const RandomAPI::Ptr& rng_arg) override
       {
 	// Not implemented (other than assert_crypto check)
 	// because OpenSSL is hardcoded to use its own RNG.
 	rng_arg->assert_crypto();
       }
 
-      virtual std::string validate_cert(const std::string& cert_txt) const
+      std::string validate_cert(const std::string& cert_txt) const override
       {
 	OpenSSLPKI::X509 cert(cert_txt, "cert");
 	return cert.render_pem();
       }
 
-      virtual std::string validate_cert_list(const std::string& certs_txt) const
+      std::string validate_cert_list(const std::string& certs_txt) const override
       {
 	CertCRLList certs(certs_txt, "cert list");
 	return certs.render_pem();
       }
 
-      virtual std::string validate_private_key(const std::string& key_txt) const
+      std::string validate_private_key(const std::string& key_txt) const override
       {
 	OpenSSLPKI::PKey pkey(key_txt, "private key");
 	return pkey.render_pem();
       }
 
-      virtual std::string validate_dh(const std::string& dh_txt) const
+      std::string validate_dh(const std::string& dh_txt) const override
       {
 	OpenSSLPKI::DH dh(dh_txt);
 	return dh.render_pem();
       }
 
-      virtual std::string validate_crl(const std::string& crl_txt) const
+      std::string validate_crl(const std::string& crl_txt) const override
       {
 	OpenSSLPKI::CRL crl(crl_txt);
 	return crl.render_pem();
       }
 
-      virtual void load(const OptionList& opt, const unsigned int lflags)
+      void load(const OptionList& opt, const unsigned int lflags) override
       {
 	// client/server
 	if (lflags & LF_PARSE_MODE)
@@ -405,6 +408,9 @@ namespace openvpn {
 	// parse tls-remote
 	tls_remote = opt.get_optional(relay_prefix + "tls-remote", 1, 256);
 
+	// parse verify-x509-name
+	verify_x509_name.init(opt, relay_prefix);
+
 	// Parse tls-version-min option.
 	tls_version_min = TLSVersion::parse_tls_version_min(opt, relay_prefix, maxver());
 
@@ -418,7 +424,7 @@ namespace openvpn {
 
 #ifdef OPENVPN_JSON_INTERNAL
       // The get_string_ref methods require internal JSON and do not work with jsoncpp
-      virtual SSLConfigAPI::Ptr json_override(const Json::Value& root, const bool load_cert_key) const override
+      SSLConfigAPI::Ptr json_override(const Json::Value& root, const bool load_cert_key) const override
       {
 	static const char title[] = "json_override";
 
@@ -550,6 +556,7 @@ namespace openvpn {
       std::vector<unsigned int> ku; // if defined, peer cert X509 key usage must match one of these values
       std::string eku;              // if defined, peer cert X509 extended key usage must match this OID/string
       std::string tls_remote;
+      VerifyX509Name verify_x509_name;   // --verify-x509-name feature
       TLSVersion::Type tls_version_min{TLSVersion::UNDEF}; // minimum TLS version that we will negotiate
       TLSCertProfile::Type tls_cert_profile{TLSCertProfile::UNDEF};
       X509Track::ConfigSet x509_track_config;
@@ -682,6 +689,10 @@ namespace openvpn {
       static void init_static()
       {
 	bmq_stream::init_static();
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_NO_EC)
+	ExternalPKIECImpl::init_static();
+#endif
+
 
 	ssl_data_index = SSL_get_ex_new_index(0, (char *)"OpenSSLContext::SSL", nullptr, nullptr, nullptr);
 	context_data_index = SSL_get_ex_new_index(0, (char *)"OpenSSLContext", nullptr, nullptr, nullptr);
@@ -814,7 +825,7 @@ namespace openvpn {
 	    X509_digest (cert, EVP_sha1 (), authcert->issuer_fp, &md_len);
 
 	    // save the Common Name
-	    authcert->cn = x509_get_field(cert, NID_commonName);
+	    authcert->cn = OpenSSLPKI::x509_get_field(cert, NID_commonName);
 
 	    // save the leaf cert serial number
 	    const ASN1_INTEGER *ai = X509_get_serialNumber(cert);
@@ -838,7 +849,7 @@ namespace openvpn {
 	::X509 *cert = SSL_get_peer_certificate (c_ssl);
 
 	if (cert)
-	  os << "CN=" << x509_get_field(cert, NID_commonName) << ", ";
+	  os << "CN=" << OpenSSLPKI::x509_get_field(cert, NID_commonName) << ", ";
 
 	os << SSL_get_version (c_ssl);
 
@@ -963,180 +974,6 @@ namespace openvpn {
     };
 
   private:
-    class ExternalPKIImpl {
-    public:
-      ExternalPKIImpl(SSL_CTX* ssl_ctx, ::X509* cert, ExternalPKIBase* external_pki_arg)
-	: external_pki(external_pki_arg), n_errors(0)
-      {
-	RSA *rsa = nullptr;
-        RSA *pub_rsa = nullptr;
-        RSA_METHOD *rsa_meth = nullptr;
-	const char *errtext = "";
-
-	/* allocate custom RSA method object */
-	rsa_meth = RSA_meth_new ("OpenSSLContext::ExternalPKIImpl private key RSA Method", RSA_METHOD_FLAG_NO_CHECK);
-
-	RSA_meth_set_pub_enc (rsa_meth, rsa_pub_enc);
-	RSA_meth_set_pub_dec (rsa_meth, rsa_pub_dec);
-	RSA_meth_set_priv_enc (rsa_meth, rsa_priv_enc);
-	RSA_meth_set_priv_dec (rsa_meth, rsa_priv_dec);
-	RSA_meth_set_init (rsa_meth, nullptr);
-	RSA_meth_set_finish (rsa_meth, rsa_finish);
-	RSA_meth_set0_app_data (rsa_meth, this);
-
-	/* allocate RSA object */
-	rsa = RSA_new();
-	if (rsa == nullptr)
-	  {
-	    SSLerr(SSL_F_SSL_USE_PRIVATEKEY, ERR_R_MALLOC_FAILURE);
-	    errtext = "RSA_new";
-	    goto err;
-	  }
-
-	/* get the public key */
-	if (X509_get0_pubkey(cert) == nullptr) /* nullptr before SSL_CTX_use_certificate() is called */
-	  {
-	    errtext = "pkey is NULL";
-	    goto err;
-	  }
-
-	if (EVP_PKEY_id (X509_get0_pubkey(cert)) != EVP_PKEY_RSA )
-	  {
-	    errtext = "pkey is not RSA";
-	    goto err;
-	  }
-	pub_rsa = EVP_PKEY_get0_RSA (X509_get0_pubkey(cert));
-
-	/* initialize RSA object */
-	rsa = RSA_new ();
-
-	/* only set e and n as d (private key) is outside our control */
-	RSA_set0_key(rsa, BN_dup(RSA_get0_n(pub_rsa)), BN_dup(RSA_get0_e(pub_rsa)), nullptr);
-	RSA_set_flags (rsa, RSA_FLAG_EXT_PKEY);
-
-	if (!RSA_set_method(rsa, rsa_meth))
-	  {
-	    errtext = "RSA_set_method";
-	    goto err;
-	  }
-
-	/* bind our custom RSA object to ssl_ctx */
-	if (!SSL_CTX_use_RSAPrivateKey(ssl_ctx, rsa))
-	  {
-	    errtext = "SSL_CTX_use_RSAPrivateKey";
-	    goto err;
-	  }
-
-	RSA_free(rsa); /* doesn't necessarily free, just decrements refcount */
-	return;
-
-      err:
-	if (rsa)
-	  RSA_free(rsa);
-	else
-	  {
-	    if (rsa_meth)
-	      RSA_meth_free (rsa_meth);
-	  }
-	OPENVPN_THROW(OpenSSLException, "OpenSSLContext::ExternalPKIImpl: " << errtext);
-      }
-
-      unsigned int get_n_errors() const { return n_errors; }
-
-    private:
-      OPENVPN_EXCEPTION(openssl_external_pki);
-
-      /* called at RSA_free */
-      static int rsa_finish(RSA *rsa)
-      {
-	RSA_meth_free (const_cast<RSA_METHOD*>(RSA_get_method (rsa)));
-	return 1;
-      }
-
-      /* sign arbitrary data */
-      static int rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
-      {
-	ExternalPKIImpl* self = (ExternalPKIImpl*)(RSA_meth_get0_app_data (RSA_get_method(rsa)));
-
-	try {
-	  if (padding != RSA_PKCS1_PADDING && padding != RSA_NO_PADDING)
-	    {
-	      RSAerr (RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
-	      throw ssl_external_pki("OpenSSL: bad padding type");
-	    }
-	  std::string padding_algo;
-	  if (padding == RSA_PKCS1_PADDING)
-	    {
-	      padding_algo = "RSA_PKCS1_PADDING";
-	    }
-          else if (padding == RSA_NO_PADDING)
-	    {
-	      padding_algo = "RSA_NO_PADDING";
-	    }
-
-	  /* convert 'from' to base64 */
-	  ConstBuffer from_buf(from, flen, true);
-	  const std::string from_b64 = base64->encode(from_buf);
-
-	  /* get signature */
-	  std::string sig_b64;
-	  const bool status = self->external_pki->sign(from_b64, sig_b64, padding_algo);
-	  if (!status)
-	    throw ssl_external_pki("OpenSSL: could not obtain signature");
-
-	  /* decode base64 signature to binary */
-	  const int len = RSA_size(rsa);
-	  Buffer sig(to, len, false);
-	  base64->decode(sig, sig_b64);
-
-	  /* verify length */
-	  if (sig.size() != len)
-	    throw ssl_external_pki("OpenSSL: incorrect signature length");
-
-	  /* return length of signature */
-	  return len;
-	}
-	catch (const std::exception& e)
-	  {
-	    OPENVPN_LOG("OpenSSLContext::ExternalPKIImpl::rsa_priv_enc exception: " << e.what());
-	    ++self->n_errors;
-	    return -1;
-	  }
-      }
-
-      static void not_implemented(RSA *rsa)
-      {
-	ExternalPKIImpl* self = (ExternalPKIImpl*)(RSA_meth_get0_app_data (RSA_get_method (rsa)));
-	++self->n_errors;
-      }
-
-      /* encrypt */
-      static int rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
-      {
-	not_implemented(rsa);
-	return -1;
-      }
-
-      /* verify arbitrary data */
-      static int
-      rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
-      {
-	not_implemented(rsa);
-	return -1;
-      }
-
-      /* decrypt */
-      static int
-      rsa_priv_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
-      {
-	not_implemented(rsa);
-	return -1;
-      }
-
-      ExternalPKIBase* external_pki;
-      unsigned int n_errors;
-    };
-
     /////// start of main class implementation
 
     OpenSSLContext(Config* config_arg)
@@ -1330,7 +1167,21 @@ namespace openvpn {
 	      // Set private key
 	      if (config->external_pki)
 		{
-		  epki = new ExternalPKIImpl(ctx, config->cert.obj(), config->external_pki);
+		  auto certType = EVP_PKEY_id (X509_get0_pubkey(config->cert.obj()));
+		  if (certType == EVP_PKEY_RSA )
+		    {
+		      epki = new ExternalPKIRsaImpl (ctx, config->cert.obj(), config->external_pki);
+		    }
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_NO_EC)
+		  else if (certType == EVP_PKEY_EC)
+		    {
+		      epki = new ExternalPKIECImpl (ctx, config->cert.obj(), config->external_pki);
+		    }
+#endif
+		  else
+		    {
+		      throw OpenSSLException("OpenSSLContext: pkey is neither RSA nor EC. Unsupported with external pki");
+		    }
 		}
 	      else
 		{
@@ -1505,102 +1356,15 @@ namespace openvpn {
       return found;
     }
 
-
-    static std::string x509_get_subject(::X509 *cert)
-    {
-      unique_ptr_del<char> subject(X509_NAME_oneline(X509_get_subject_name(cert), nullptr, 0),
-				   [](char* p) { OPENSSL_free(p); });
-      if (subject)
-	return std::string(subject.get());
-      else
-	return std::string("");
-    }
-
-    static std::string x509_get_field(::X509 *cert, const int nid)
-    {
-      static const char nullc = '\0';
-      std::string ret;
-      X509_NAME *x509_name = X509_get_subject_name(cert);
-      int i = X509_NAME_get_index_by_NID(x509_name, nid, -1);
-      if (i >= 0)
-	{
-	  X509_NAME_ENTRY *ent = X509_NAME_get_entry(x509_name, i);
-	  if (ent)
-	    {
-	      ASN1_STRING *val = X509_NAME_ENTRY_get_data(ent);
-	      unsigned char *buf;
-	      buf = (unsigned char *)1; // bug in OpenSSL 0.9.6b ASN1_STRING_to_UTF8 requires this workaround
-	      const int len = ASN1_STRING_to_UTF8(&buf, val);
-	      if (len > 0)
-		{
-		  if (std::strlen((char *)buf) == len)
-		    ret = (char *)buf;
-		  OPENSSL_free(buf);
-		}
-	    }
-	}
-      else
-	{
-	  i = X509_get_ext_by_NID(cert, nid, -1);
-	  if (i >= 0)
-	    {
-	      X509_EXTENSION *ext = X509_get_ext(cert, i);
-	      if (ext)
-		{
-		  BIO *bio = BIO_new(BIO_s_mem());
-		  if (bio)
-		    {
-		      if (X509V3_EXT_print(bio, ext, 0, 0))
-			{
-			  if (BIO_write(bio, &nullc, 1) == 1)
-			    {
-			      char *str;
-			      const long len = BIO_get_mem_data(bio, &str);
-			      if (std::strlen(str) == len)
-				ret = str;
-			    }
-			}
-		      BIO_free(bio);
-		    }
-		}
-	    }
-	}
-      return ret;
-    }
-
-    static std::string x509_get_serial(::X509 *cert)
-    {
-      ASN1_INTEGER *asn1_i;
-      BIGNUM *bignum;
-      char *openssl_serial;
-
-      asn1_i = X509_get_serialNumber(cert);
-      bignum = ASN1_INTEGER_to_BN(asn1_i, NULL);
-      openssl_serial = BN_bn2dec(bignum);
-
-      const std::string ret = openssl_serial;
-
-      BN_free(bignum);
-      OPENSSL_free(openssl_serial);
-
-      return ret;
-    }
-
-    static std::string x509_get_serial_hex(::X509 *cert)
-    {
-      const ASN1_INTEGER *asn1_i = X509_get_serialNumber(cert);
-      return render_hex_sep(asn1_i->data, asn1_i->length, ':', false);
-    }
-
     static void x509_track_extract_nid(const X509Track::Type xt_type,
 				       const int nid,
 				       ::X509 *cert,
 				       const int depth,
 				       X509Track::Set& xts)
     {
-      const std::string value = x509_get_field(cert, nid);
+      const std::string value = OpenSSLPKI::x509_get_field(cert, nid);
       if (!value.empty())
-	xts.emplace_back(xt_type, depth, x509_get_field(cert, nid));
+	xts.emplace_back(xt_type, depth, OpenSSLPKI::x509_get_field(cert, nid));
     }
 
     static void x509_track_extract_from_cert(::X509 *cert,
@@ -1617,12 +1381,12 @@ namespace openvpn {
 		case X509Track::SERIAL:
 		  xts.emplace_back(X509Track::SERIAL,
 				   depth,
-				   x509_get_serial(cert));
+				   OpenSSLPKI::x509_get_serial(cert));
 		  break;
 		case X509Track::SERIAL_HEX:
 		  xts.emplace_back(X509Track::SERIAL_HEX,
 				   depth,
-				   x509_get_serial_hex(cert));
+				   OpenSSLPKI::x509_get_serial_hex(cert));
 		  break;
 		case X509Track::SHA1:
 		  {
@@ -1717,7 +1481,7 @@ namespace openvpn {
       X509* current_cert = X509_STORE_CTX_get_current_cert (ctx);
 
       // log subject
-      const std::string subject = x509_get_subject(current_cert);
+      const std::string subject = OpenSSLPKI::x509_get_subject(current_cert);
       if (self->config->flags & SSLConst::LOG_VERIFY_STATUS)
 	OPENVPN_LOG_SSL(cert_status_line(preverify_ok, depth, X509_STORE_CTX_get_error(ctx), subject));
 
@@ -1745,11 +1509,35 @@ namespace openvpn {
 	      preverify_ok = false;
 	    }
 
+	  // verify-x509-name
+	  const VerifyX509Name& verify_x509 = self->config->verify_x509_name;
+	  if (verify_x509.get_mode() != VerifyX509Name::VERIFY_X509_NONE)
+	  {
+	    switch (verify_x509.get_mode())
+	    {
+	      case VerifyX509Name::VERIFY_X509_SUBJECT_DN:
+		preverify_ok = verify_x509.verify(OpenSSLPKI::x509_get_subject(current_cert, true));
+		break;
+
+	      case VerifyX509Name::VERIFY_X509_SUBJECT_RDN:
+	      case VerifyX509Name::VERIFY_X509_SUBJECT_RDN_PREFIX:
+		preverify_ok = verify_x509.verify(OpenSSLPKI::x509_get_field(current_cert, NID_commonName));
+		break;
+
+	      default:
+		break;
+	    }
+	    if (!preverify_ok)
+	    {
+	      OPENVPN_LOG_SSL("VERIFY FAIL -- verify-x509-name failed");
+	    }
+	  }
+
 	  // verify tls-remote
 	  if (!self->config->tls_remote.empty())
 	    {
 	      const std::string subj = TLSRemote::sanitize_x509_name(subject);
-	      const std::string common_name = TLSRemote::sanitize_common_name(x509_get_field(current_cert, NID_commonName));
+	      const std::string common_name = TLSRemote::sanitize_common_name(OpenSSLPKI::x509_get_field(current_cert, NID_commonName));
 	      TLSRemote::log(self->config->tls_remote, subj, common_name);
 	      if (!TLSRemote::test(self->config->tls_remote, subj, common_name))
 		{
@@ -1784,7 +1572,7 @@ namespace openvpn {
 
       // log subject
       if (self->config->flags & SSLConst::LOG_VERIFY_STATUS)
-	OPENVPN_LOG_SSL(cert_status_line(preverify_ok, depth, err, x509_get_subject(current_cert)));
+	OPENVPN_LOG_SSL(cert_status_line(preverify_ok, depth, err, OpenSSLPKI::x509_get_subject(current_cert)));
 
       // record cert error in authcert
       if (!preverify_ok && self_ssl->authcert)
@@ -1833,7 +1621,7 @@ namespace openvpn {
 	  if (self_ssl->authcert)
 	    {
 	      // save the Common Name
-	      self_ssl->authcert->cn = x509_get_field(current_cert, NID_commonName);
+	      self_ssl->authcert->cn = OpenSSLPKI::x509_get_field(current_cert, NID_commonName);
 
 	      // save the leaf cert serial number
 	      const ASN1_INTEGER *ai = X509_get_serialNumber(current_cert);

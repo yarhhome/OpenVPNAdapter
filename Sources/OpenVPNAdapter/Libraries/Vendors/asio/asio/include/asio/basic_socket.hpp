@@ -950,6 +950,8 @@ public:
     {
       const protocol_type protocol = peer_endpoint.protocol();
       impl_.get_service().open(impl_.get_implementation(), protocol, open_ec);
+      if (!open_ec)
+          async_connect_post_open(protocol, open_ec);
     }
 
     return async_initiate<ConnectHandler, void (asio::error_code)>(
